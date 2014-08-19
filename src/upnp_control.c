@@ -519,7 +519,7 @@ static int cmd_obtain_variable(struct action_event *event,
 	if (instance == NULL) {
 		return -1;
 	}
-	Log_info("control", "%s: %s for instance %s\n",
+	print_log(2, "control", "%s: %s for instance %s\n",
 		 __FUNCTION__, paramname, instance);
 	free(instance);   // we don't care about that value for now.
 
@@ -673,7 +673,7 @@ static float change_volume_decibel(float raw_decibel) {
 	char db_volume[10];
 	snprintf(db_volume, sizeof(db_volume), "%d", (int) (256 * decibel));
 
-	Log_info("control", "Setting volume-db to %.2fdb == #%d",
+	print_log(2, "control", "Setting volume-db to %.2fdb == #%d",
 		decibel, volume_level);
 
 	change_volume(volume, db_volume);
@@ -794,7 +794,7 @@ void upnp_control_init(struct upnp_device *device) {
 	// Set initial volume.
 	float volume_fraction = 0;
 	if (output_get_volume(&volume_fraction) == 0) {
-		Log_info("control", "Output inital volume is %f; setting "
+		print_log(2, "control", "Output inital volume is %f; setting "
 			 "control variables accordingly.", volume_fraction);
 		change_volume_decibel(20 * log(volume_fraction) / log(10));
 	}

@@ -28,6 +28,10 @@
 #define PRINTF_FMT_CHECK(fmt_pos, args_pos) \
     __attribute__ ((format (printf, fmt_pos, args_pos)))
 
+
+// our global debug level var
+extern int debug_level;
+
 // With filename given, logs info and error to that file. If filename is NULL,
 // nothing is logged (TODO: log error to syslog).
 void Log_init(const char *filename);
@@ -39,5 +43,6 @@ void Log_info(const char *category, const char *format, ...)
 	PRINTF_FMT_CHECK(2, 3);
 void Log_error(const char *category, const char *format, ...)
 	PRINTF_FMT_CHECK(2, 3);
-
+void print_log(int level, const char *category, const char *format, ...)
+	PRINTF_FMT_CHECK(3, 4);
 #endif /* _LOGGING_H */

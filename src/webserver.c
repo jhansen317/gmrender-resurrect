@@ -64,7 +64,7 @@ int webserver_register_buf(const char *path, const char *contents,
 {
 	struct virtual_file *entry;
 
-	Log_info("webserver", "Provide %s (%s) from buffer",
+	print_log(2, "webserver", "Provide %s (%s) from buffer",
 		 path, content_type);
 
 	assert(path != NULL);
@@ -95,7 +95,7 @@ int webserver_register_file(const char *path, const char *content_type)
 	snprintf(local_fname, PATH_MAX, "%s%s", PKG_DATADIR,
 	         strrchr(path, '/'));
 
-	Log_info("webserver", "Provide %s (%s) from %s", path, content_type,
+	print_log(2, "webserver", "Provide %s (%s) from %s", path, content_type,
 		 local_fname);
 
 	rc = stat(local_fname, &buf);
@@ -150,14 +150,14 @@ static int webserver_get_info(const char *filename, struct File_Info *info)
 			info->is_readable = 1;
 			info->content_type =
 			    ixmlCloneDOMString(virtfile->content_type);
-			Log_info("webserver", "Access %s (%s) len=%zd",
+			print_log(2, "webserver", "Access %s (%s) len=%zd",
 				 filename, info->content_type, virtfile->len);
 			return 0;
 		}
 		virtfile = virtfile->next;
 	}
 
-	Log_info("webserver", "404 Not found. (attempt to access "
+	print_log(2, "webserver", "404 Not found. (attempt to access "
 		 "non-existent '%s')", filename);
 
 	return -1;

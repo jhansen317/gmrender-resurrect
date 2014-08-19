@@ -161,7 +161,7 @@ static int handle_subscription_request(struct upnp_device *priv,
 
 	assert(priv != NULL);
 
-	Log_info("upnp", "Subscription request for %s (%s)",
+	print_log(2, "upnp", "Subscription request for %s (%s)",
 		 sr_event->ServiceId, sr_event->UDN);
 
 	srv = find_service(priv->upnp_device_descriptor, sr_event->ServiceId);
@@ -203,7 +203,7 @@ static int handle_subscription_request(struct upnp_device *priv,
 	}
 	ithread_mutex_unlock(srv->service_mutex);
 	char *xml_value = UPnPLastChangeBuilder_to_xml(builder);
-	Log_info("upnp", "Initial variable sync: %s", xml_value);
+	print_log(2, "upnp", "Initial variable sync: %s", xml_value);
 	eventvar_values[0] = xmlescape(xml_value, 0);
 	free(xml_value);
 	UPnPLastChangeBuilder_delete(builder);
@@ -269,7 +269,7 @@ static int handle_var_request(struct upnp_device *priv,
 	var_event->ErrCode = (result == NULL)
 		? UPNP_SOAP_E_INVALID_VAR
 		: UPNP_E_SUCCESS;
-	Log_info("upnp", "Variable request %s -> %s (%s)",
+	print_log(2, "upnp", "Variable request %s -> %s (%s)",
 		 var_event->StateVarName, result, var_event->ServiceID);
 	return 0;
 }
@@ -319,7 +319,7 @@ static int handle_action_request(struct upnp_device *priv,
 			action_request_xml = ixmlDocumenttoString(
 					   ar_event->ActionRequest);
 		}
-		Log_info("upnp", "Action '%s'; Request: %s",
+		print_log(2, "upnp", "Action '%s'; Request: %s",
 			 ar_event->ActionName, action_request_xml);
 		free(action_request_xml);
 	}
@@ -341,12 +341,12 @@ static int handle_action_request(struct upnp_device *priv,
 				char *action_result_xml = NULL;
 				action_result_xml = ixmlDocumenttoString(
 						ar_event->ActionResult);
-				Log_info("upnp", "Action '%s' OK; Response %s",
+				print_log(2, "upnp", "Action '%s' OK; Response %s",
 					 ar_event->ActionName,
 					 action_result_xml);
 				free(action_result_xml);
 			} else {
-				Log_info("upnp", "Action '%s' OK",
+				print_log(2, "upnp", "Action '%s' OK",
 					 ar_event->ActionName);
 			}
 #endif
@@ -417,7 +417,7 @@ static gboolean initialize_device(struct upnp_device_descriptor *device_def,
 			  ip_address, port, UpnpGetErrorMessage(rc), rc);
 		return FALSE;
 	}
-	Log_info("upnp", "Registered IP=%s port=%d\n",
+	print_log(2, "upnp", "Registered IP=%s port=%d\n",
 		 UpnpGetServerIpAddress(), UpnpGetServerPort());
 
 	rc = UpnpEnableWebserver(TRUE);

@@ -198,7 +198,7 @@ static void register_mime_type_internal(const char *mime_type) {
 			return;
 		}
 	}
-	Log_info("connmgr", "Registering support for '%s'", mime_type);
+	print_log(3, "connmgr", "Registering support for '%s'", mime_type);
 
 	entry = malloc(sizeof(struct mime_type));
 	entry->mime_type = strdup(mime_type);
@@ -328,7 +328,7 @@ static int get_current_conn_info(struct action_event *event)
 	if (value == NULL) {
 		return -1;
 	}
-	Log_info("connmgr", "Query ConnectionID='%s'", value);
+	print_log(3, "connmgr", "Query ConnectionID='%s'", value);
 	free(value);  // we don't actually do anything with it.
 
 	upnp_append_variable(event, CONNMGR_VAR_AAT_RCS_ID, "RcsID");

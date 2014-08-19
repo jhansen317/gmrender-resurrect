@@ -80,6 +80,19 @@ static const gchar *friendly_name = PACKAGE_NAME;
 static const gchar *output = NULL;
 static const gchar *pid_file = NULL;
 static const gchar *log_file = NULL;
+static gchar *last_played_file = NULL;
+static gchar *playback_time_file = NULL;
+FILE *last_played;
+FILE *playback_time;
+
+
+int debug_level = 0;
+
+// vars to store start and end of playback
+time_t playstart, playend;
+struct tm *timeinfo;
+int elapsedHours, elapsedMin, elapsedSec, rawSeconds;
+char timestring[80];
 
 /* Generic GMediaRender options */
 static GOptionEntry option_entries[] = {
@@ -95,6 +108,8 @@ static GOptionEntry option_entries[] = {
 	  "SO_REUSEADDR, so might increment)", NULL },
 	{ "uuid", 'u', 0, G_OPTION_ARG_STRING, &uuid,
 	  "UUID to advertise", NULL },
+	{ "debug-level", 'v', 0, G_OPTION_ARG_INT, &debug_level,
+	  "How much logging.", NULL },
 	{ "friendly-name", 'f', 0, G_OPTION_ARG_STRING, &friendly_name,
 	  "Friendly name to advertise.", NULL },
 	{ "output", 'o', 0, G_OPTION_ARG_STRING, &output,
@@ -105,6 +120,10 @@ static GOptionEntry option_entries[] = {
 	  "Run as daemon.", NULL },
 	{ "logfile", 0, 0, G_OPTION_ARG_STRING, &log_file,
 	  "Debug log filename. Use /dev/stdout to log to console.", NULL },
+	{ "last-played-file", 0, 0, G_OPTION_ARG_STRING, &last_played_file,
+	  "File to record time of last playback start", NULL },
+	{ "playback-time-file", 0, 0, G_OPTION_ARG_STRING, &playback_time_file,
+	  "File to record the total length of last playback", NULL },
 	{ "list-outputs", 0, 0, G_OPTION_ARG_NONE, &show_outputs,
 	  "List available output modules and exit", NULL },
 	{ "dump-devicedesc", 0, 0, G_OPTION_ARG_NONE, &show_devicedesc,
@@ -162,9 +181,39 @@ static void log_variable_change(void *userdata, int var_num,
 	// Silly terminal codes. Set to empty strings if not needed.
 	const char *var_start = Log_color_allowed() ? "\033[1m\033[34m" : "";
 	const char *var_end = Log_color_allowed() ? "\033[0m" : "";
-	Log_info(category, "%s%s%s: %s%s",
+	if ( strcmp(variable_value, "PLAYING") == 0 )
+	{
+		time(&playstart);
+		timeinfo = gmtime(&playstart);
+		strftime(timestring, 80, "%F %T", timeinfo);
+		last_played = fopen(last_played_file, "w");
+		fprintf(last_played, "LAST_PLAYED=\'%s\'\n", timestring);
+		fclose(last_played);
+		print_log(0, category, "%s%s%s: %s%s",
+		 var_start, variable_name, var_end,
+		 variable_value, needs_newline ? "\n" : "");			
+	}
+        else if (strcmp(variable_value, "STOPPED") == 0)
+	{
+		print_log(0, category, "%s%s%s: %s%s",
+		 var_start, variable_name, var_end,
+		 variable_value, needs_newline ? "\n" : "");	
+		time(&playend);
+		rawSeconds = (int)difftime(playend, playstart);
+		elapsedHours = rawSeconds/3600;
+		elapsedMin = (rawSeconds/60)%60;
+		elapsedSec = (rawSeconds)%60;
+		playback_time = fopen(playback_time_file, "w");
+		fprintf(playback_time, "TOTAL=%d\n", rawSeconds);
+		fclose(playback_time);
+		print_log(0, category, "Total playing time %02d:%02d:%02d\n", elapsedHours, elapsedMin, elapsedSec);
+	}
+	else
+	{
+		print_log(2, category, "%s%s%s: %s%s",
 		 var_start, variable_name, var_end,
 		 variable_value, needs_newline ? "\n" : "");
+	}
 }
 
 static void init_logging(const char *log_file) {
@@ -176,7 +225,7 @@ static void init_logging(const char *log_file) {
 		 GST_VERSION_MAJOR, GST_VERSION_MINOR, GST_VERSION_MICRO);
 	if (log_file != NULL) {
 		Log_init(log_file);
-		Log_info("main", "%s log started %s", PACKAGE_STRING, version);
+		print_log(0, "main", "%s log started %s", PACKAGE_STRING, version);
 
 	} else {
 		fprintf(stderr, "%s started %s.\nLogging switched off. "
@@ -221,6 +270,7 @@ int main(int argc, char **argv)
 		output_dump_modules();
 		exit(EXIT_SUCCESS);
 	}
+	
 
 	init_logging(log_file);
 
@@ -291,14 +341,14 @@ int main(int argc, char **argv)
 	}
 
 	// Write both to the log (which might be disabled) and console.
-	Log_info("main", "Ready for rendering.");
+	print_log(0, "main", "Ready for rendering.");
 	fprintf(stderr, "Ready for rendering.\n");
 
 	output_loop();
 
 	// We're here, because the loop exited. Probably due to catching
 	// a signal.
-	Log_info("main", "Exiting.");
+	print_log(0, "main", "Exiting.");
 	upnp_device_shutdown(device);
 
 	return EXIT_SUCCESS;

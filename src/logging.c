@@ -40,7 +40,6 @@
 
 static int log_fd = -1;
 static int enable_color = 0;
-
 static const char *const kInfoHighlight  = "\033[1mINFO  ";
 static const char *const kErrorHighlight = "\033[1m\033[31mERROR ";
 static const char *const kTermReset      = "\033[0m";
@@ -111,3 +110,11 @@ void Log_error(const char *category, const char *format, ...) {
 	va_end(ap);
 }
 
+void print_log(int level, const char *category, const char *format, ...) {
+	if (level > debug_level) return;
+	va_list ap;
+        va_start(ap, format);
+        Log_internal(log_fd < 0 ? STDERR_FILENO : log_fd,
+                     info_markup_start_, category, format, ap);
+        va_end(ap);
+}
