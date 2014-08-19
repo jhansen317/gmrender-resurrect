@@ -82,17 +82,12 @@ static const gchar *pid_file = NULL;
 static const gchar *log_file = NULL;
 static gchar *last_played_file = NULL;
 static gchar *playback_time_file = NULL;
-FILE *last_played;
-FILE *playback_time;
-
-
-int debug_level = 0;
 
 // vars to store start and end of playback
 time_t playstart, playend;
-struct tm *timeinfo;
-int elapsedHours, elapsedMin, elapsedSec, rawSeconds;
-char timestring[80];
+
+int debug_level = 0;
+
 
 /* Generic GMediaRender options */
 static GOptionEntry option_entries[] = {
@@ -184,29 +179,18 @@ static void log_variable_change(void *userdata, int var_num,
 	if ( strcmp(variable_value, "PLAYING") == 0 )
 	{
 		time(&playstart);
-		timeinfo = gmtime(&playstart);
-		strftime(timestring, 80, "%F %T", timeinfo);
-		last_played = fopen(last_played_file, "w");
-		fprintf(last_played, "LAST_PLAYED=\'%s\'\n", timestring);
-		fclose(last_played);
+		log_last_playback(playstart);
 		print_log(0, category, "%s%s%s: %s%s",
 		 var_start, variable_name, var_end,
 		 variable_value, needs_newline ? "\n" : "");			
 	}
         else if (strcmp(variable_value, "STOPPED") == 0)
 	{
+		time(&playend);
+		log_playback_duration(playstart, playend);
 		print_log(0, category, "%s%s%s: %s%s",
 		 var_start, variable_name, var_end,
 		 variable_value, needs_newline ? "\n" : "");	
-		time(&playend);
-		rawSeconds = (int)difftime(playend, playstart);
-		elapsedHours = rawSeconds/3600;
-		elapsedMin = (rawSeconds/60)%60;
-		elapsedSec = (rawSeconds)%60;
-		playback_time = fopen(playback_time_file, "w");
-		fprintf(playback_time, "TOTAL=%d\n", rawSeconds);
-		fclose(playback_time);
-		print_log(0, category, "Total playing time %02d:%02d:%02d\n", elapsedHours, elapsedMin, elapsedSec);
 	}
 	else
 	{
@@ -216,7 +200,7 @@ static void log_variable_change(void *userdata, int var_num,
 	}
 }
 
-static void init_logging(const char *log_file) {
+static void init_logging(const char *log_file, const char *last_played_file, const char *playback_time_file) {
 	char *version;
 	asprintf(&version,  "[ gmediarender %s "
 		 "(libupnp-%s; glib-%d.%d.%d; gstreamer-%d.%d.%d) ]",
@@ -224,7 +208,7 @@ static void init_logging(const char *log_file) {
 		 GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION,
 		 GST_VERSION_MAJOR, GST_VERSION_MINOR, GST_VERSION_MICRO);
 	if (log_file != NULL) {
-		Log_init(log_file);
+		Log_init(log_file, last_played_file, playback_time_file);
 		print_log(0, "main", "%s log started %s", PACKAGE_STRING, version);
 
 	} else {
@@ -272,7 +256,7 @@ int main(int argc, char **argv)
 	}
 	
 
-	init_logging(log_file);
+	init_logging(log_file, last_played_file, playback_time_file);
 
 	// Now we're going to start threads etc, which means we need
 	// to become a daemon before that.

@@ -34,7 +34,7 @@ extern int debug_level;
 
 // With filename given, logs info and error to that file. If filename is NULL,
 // nothing is logged (TODO: log error to syslog).
-void Log_init(const char *filename);
+void Log_init(const char *filename, const char *last_played_file, const char *playback_time_file);
 int Log_color_allowed(void);  // Returns if we're allowed to use terminal color.
 int Log_info_enabled(void);
 int Log_error_enabled(void);
@@ -45,4 +45,7 @@ void Log_error(const char *category, const char *format, ...)
 	PRINTF_FMT_CHECK(2, 3);
 void print_log(int level, const char *category, const char *format, ...)
 	PRINTF_FMT_CHECK(3, 4);
+void log_last_playback(time_t playstart);
+void log_playback_duration(time_t playstart, time_t playend);
+
 #endif /* _LOGGING_H */

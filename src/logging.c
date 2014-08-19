@@ -39,6 +39,8 @@
 #include "git-version.h"
 
 static int log_fd = -1;
+static int last_played_fd = -1;
+static int playback_fd = -1;
 static int enable_color = 0;
 static const char *const kInfoHighlight  = "\033[1mINFO  ";
 static const char *const kErrorHighlight = "\033[1m\033[31mERROR ";
@@ -48,13 +50,33 @@ static const char *info_markup_start_  = "INFO  ";
 static const char *error_markup_start_ = "ERROR ";
 static const char *markup_end_ = "";
 
-void Log_init(const char *filename) {
-	if (filename == NULL)
-		return;
-	log_fd = open(filename, O_CREAT|O_APPEND|O_WRONLY, 0644);
-	if (log_fd < 0) {
-		perror("Cannot open logfile");
-		return;
+
+
+
+void Log_init(const char *filename, const char *last_played_file, const char *playback_time_file) {
+	if (filename != NULL)
+	{
+		log_fd = open(filename, O_CREAT|O_APPEND|O_WRONLY, 0644);
+		if (log_fd < 0) {
+			perror("Cannot open logfile");
+			return;
+		}
+	}
+	if (last_played_file != NULL)
+	{
+		last_played_fd = open(last_played_file, O_CREAT|O_APPEND|O_WRONLY, 0644);
+		if (last_played_fd < 0) {
+			perror("Cannot open last played file");
+			return;
+		}
+	}
+	if (playback_time_file != NULL)
+	{
+		playback_fd = open(playback_time_file, O_CREAT|O_APPEND|O_WRONLY, 0644);
+		if (playback_fd < 0) {
+			perror("Cannot open playback time file");
+			return;
+		}
 	}
 	enable_color = isatty(log_fd);
 	if (enable_color) {
@@ -79,8 +101,8 @@ static void Log_internal(int fd, const char *markup_start,
 	strftime(fmt_buf, sizeof(fmt_buf), "%F %T", &time_breakdown);
 	struct iovec parts[3];
 	parts[0].iov_len = asprintf((char**) &parts[0].iov_base,
-				    "%s[%s.%06ld | %s]%s ",
-				    markup_start, fmt_buf, now.tv_usec,
+				    "%s[%s | %s]%s ",
+				    markup_start, fmt_buf, 
 				    category, markup_end_);
 	parts[1].iov_len = vasprintf((char**) &parts[1].iov_base, format, ap);
 	parts[2].iov_base = (void*) "\n";
@@ -118,3 +140,36 @@ void print_log(int level, const char *category, const char *format, ...) {
                      info_markup_start_, category, format, ap);
         va_end(ap);
 }
+
+void log_last_playback(time_t playstart){
+	struct tm *timeinfo;
+	char timestring[80];
+	char buffer[80];
+	int buflength;
+
+	timeinfo = gmtime(&playstart);
+	strftime(timestring, 80, "%F %T", timeinfo);
+	buflength = sprintf(buffer, "UPNP_LAST_PLAYED=\'%s\'\n", timestring);
+	ftruncate(last_played_fd, 0);
+	write(last_played_fd, buffer, buflength);
+}
+
+
+
+void log_playback_duration(time_t playstart, time_t playend){
+	int elapsedHours, elapsedMin, elapsedSec, rawSeconds;
+	char buffer[80];
+	int buflength;
+
+	rawSeconds = (int)difftime(playend, playstart);
+	elapsedHours = rawSeconds/3600;
+	elapsedMin = (rawSeconds/60)%60;
+	elapsedSec = (rawSeconds)%60;
+	buflength = sprintf(buffer, "UPNP_TOTAL=%d\n", rawSeconds);
+	ftruncate(playback_fd, 0);
+	write(playback_fd, buffer, buflength);
+	print_log(0, "transport", "Total playing time %02d:%02d:%02d\n", elapsedHours, elapsedMin, elapsedSec);
+
+}
+
+
