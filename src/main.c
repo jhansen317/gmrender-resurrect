@@ -180,24 +180,30 @@ static void log_variable_change(void *userdata, int var_num,
 	const char *var_end = Log_color_allowed() ? "\033[0m" : "";
 	if ( strcmp(variable_value, "PLAYING") == 0 )
 	{
-		time(&playstart);
-		log_last_playback(playstart);
-		print_log(0, category, "%s%s%s: %s%s",
-		 var_start, variable_name, var_end,
-		 variable_value, needs_newline ? "\n" : "");			
+        time(&playstart);
+        log_last_playback(playstart);
+        print_log(0, category, "%s%s%s: %s%s",
+         var_start, variable_name, var_end,
+         variable_value, needs_newline ? "\n" : "");			
 	}
-        else if (strcmp(variable_value, "STOPPED") == 0)
+    else if (strcmp(variable_value, "STOPPED") == 0)
 	{
-		time(&playend);
+        time(&playend);
 		log_playback_duration(playstart, playend);
 		print_log(0, category, "%s%s%s: %s%s",
-		 var_start, variable_name, var_end,
-		 variable_value, needs_newline ? "\n" : "");	
+         var_start, variable_name, var_end,
+         variable_value, needs_newline ? "\n" : "");	
 	}
+    else if (strcmp(variable_value, "PAUSED_PLAYBACK") == 0)
+    {
+        print_log(0, category, "%s%s%s: %s%s",
+         var_start, variable_name, var_end,
+         variable_value, needs_newline ? "\n" : "");
+    }
 	else
 	{
 		print_log(2, category, "%s%s%s: %s%s",
-		 var_start, variable_name, var_end,
+	     var_start, variable_name, var_end,
 		 variable_value, needs_newline ? "\n" : "");
 	}
 }
